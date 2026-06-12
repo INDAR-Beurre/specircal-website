@@ -85,11 +85,15 @@ let dragDistance = 0;
 let targetGridPanX = 0, targetGridPanY = 0;
 let currentGridPanX = 0, currentGridPanY = 0;
 let startGridPanX = 0, startGridPanY = 0;
+let maxGridPanX = 20.0;
+let maxGridPanY = 6.5;
 
 // Dimensions of card in 3D
 const CARD_WIDTH = 2.4;
 const CARD_HEIGHT = 3.2;
 const SPHERE_RADIUS = 13.0;
+const GRID_COL_SPACING = 3.5;
+const GRID_ROW_SPACING = 4.2;
 
 // --- INITIALIZE THREE.JS ---
 const container = document.getElementById('canvas-container');
@@ -265,9 +269,7 @@ async function fetchAndInitializeProjects() {
   });
 
   // Re-calculate sphere dimensions to support dynamic catalog sizes
-  // We want approximately equal columns and rows.
-  // E.g., if total files = N:
-  const colsCount = Math.ceil(Math.sqrt(N_total_ratio(files.length)));
+  const colsCount = N_total_ratio(files.length);
   const rowsCount = Math.ceil(files.length / colsCount);
   console.log(`Grid Layout configured: ${colsCount} cols x ${rowsCount} rows.`);
 
@@ -335,9 +337,10 @@ function initializeThreeGallery(colsCount, rowsCount) {
     const row = Math.floor(index / colsCount);
     const col = index % colsCount;
     
-    // Distribute row angles theta based on actual row counts
+    // Distribute row angles theta based on actual row counts, spanning -30 to +30 degrees to avoid overlaps
     const midRowOffset = (rowsCount - 1) / 2;
-    const theta = (midRowOffset - row) * (30 / rowsCount) * Math.PI / 180; // clamp max pitch at ~30 deg
+    const thetaSpacing = rowsCount > 1 ? 60 / (rowsCount - 1) : 0;
+    const theta = (midRowOffset - row) * thetaSpacing * Math.PI / 180;
     const phi = col * (Math.PI * 2 / colsCount);
     
     const sx = SPHERE_RADIUS * Math.cos(theta) * Math.sin(phi);
@@ -353,10 +356,8 @@ function initializeThreeGallery(colsCount, rowsCount) {
     mesh.userData.phi = phi;
 
     // Calculate Flat Grid Position coordinates
-    const gridColSpacing = 3.5;
-    const gridRowSpacing = 4.2;
-    const gx = (col - (colsCount - 1) / 2) * gridColSpacing;
-    const gy = ((rowsCount - 1) / 2 - row) * gridRowSpacing;
+    const gx = (col - (colsCount - 1) / 2) * GRID_COL_SPACING;
+    const gy = ((rowsCount - 1) / 2 - row) * GRID_ROW_SPACING;
     const gz = -10.0;
     
     mesh.userData.gridPosition = new THREE.Vector3(gx, gy, gz);
@@ -435,6 +436,9 @@ function initializeThreeGallery(colsCount, rowsCount) {
     });
   });
 
+  maxGridPanX = Math.max(0, (colsCount - 1) * GRID_COL_SPACING / 2);
+  maxGridPanY = Math.max(0, (rowsCount - 1) * GRID_ROW_SPACING / 2);
+
   calculateCardScreenSizes();
   updateCardOverlays();
 }
@@ -457,6 +461,9 @@ const cameraDirection = new THREE.Vector3();
 
 function updateCardOverlays() {
   if (cardMeshes.length === 0) return;
+  
+  galleryGroup.updateMatrixWorld(true);
+  camera.updateMatrixWorld(true);
   
   cameraDirection.set(0, 0, -1).applyQuaternion(camera.quaternion);
 
@@ -1098,8 +1105,8 @@ function onPointerMove(e) {
     targetGridPanX = startGridPanX + dx * 0.018;
     targetGridPanY = startGridPanY - dy * 0.018;
     
-    targetGridPanX = Math.max(-20.0, Math.min(20.0, targetGridPanX));
-    targetGridPanY = Math.max(-6.5, Math.min(6.5, targetGridPanY));
+    targetGridPanX = Math.max(-maxGridPanX, Math.min(maxGridPanX, targetGridPanX));
+    targetGridPanY = Math.max(-maxGridPanY, Math.min(maxGridPanY, targetGridPanY));
   }
 }
 
@@ -1124,8 +1131,8 @@ window.addEventListener('wheel', (e) => {
   } else {
     targetGridPanX -= e.deltaX * 0.005;
     targetGridPanY += e.deltaY * 0.005;
-    targetGridPanX = Math.max(-20.0, Math.min(20.0, targetGridPanX));
-    targetGridPanY = Math.max(-6.5, Math.min(6.5, targetGridPanY));
+    targetGridPanX = Math.max(-maxGridPanX, Math.min(maxGridPanX, targetGridPanX));
+    targetGridPanY = Math.max(-maxGridPanY, Math.min(maxGridPanY, targetGridPanY));
   }
 }, { passive: true });
 
