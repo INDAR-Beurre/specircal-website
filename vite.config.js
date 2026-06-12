@@ -52,7 +52,17 @@ export default defineConfig({
                   if (err) {
                     console.error('[Server] Screenshot capture error:', err.message);
                   } else {
-                    console.log('[Server] Screenshot previews updated successfully.');
+                    console.log('[Server] Screenshot previews updated successfully. Syncing with GitHub...');
+                    
+                    // Add, commit and push to GitHub repository
+                    const gitCmd = `git add "public/projects/${safeName}" "public/assets/previews/${safeName}.png" && git commit -m "feat: integrate uploaded website ${safeName}" && git push origin main`;
+                    exec(gitCmd, (gitErr, gitStdout, gitStderr) => {
+                      if (gitErr) {
+                        console.error('[Server] Git sync error:', gitErr.message);
+                      } else {
+                        console.log('[Server] GitHub sync complete! Changes pushed to origin main.');
+                      }
+                    });
                   }
                 });
 
