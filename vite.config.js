@@ -52,15 +52,15 @@ export default defineConfig({
                   if (err) {
                     console.error('[Server] Screenshot capture error:', err.message);
                   } else {
-                    console.log('[Server] Screenshot previews updated successfully. Syncing with GitHub...');
+                    console.log('[Server] Screenshot previews updated successfully. Syncing with GitHub and Netlify...');
                     
-                    // Add, commit and push to GitHub repository
-                    const gitCmd = `git add "public/projects/${safeName}" "public/assets/previews/${safeName}.png" && git commit -m "feat: integrate uploaded website ${safeName}" && git push origin main`;
-                    exec(gitCmd, (gitErr, gitStdout, gitStderr) => {
-                      if (gitErr) {
-                        console.error('[Server] Git sync error:', gitErr.message);
+                    // Add, commit, push to GitHub, rebuild, and deploy to Netlify
+                    const deployCmd = `git add "public/projects/${safeName}" "public/assets/previews/${safeName}.png" && git commit -m "feat: integrate uploaded website ${safeName}" && git push origin main && npm run build && netlify deploy --prod --dir=dist`;
+                    exec(deployCmd, (deployErr, deployStdout, deployStderr) => {
+                      if (deployErr) {
+                        console.error('[Server] Deployment error:', deployErr.message);
                       } else {
-                        console.log('[Server] GitHub sync complete! Changes pushed to origin main.');
+                        console.log('[Server] GitHub sync and Netlify deployment complete! Live site updated.');
                       }
                     });
                   }
